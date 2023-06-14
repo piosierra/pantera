@@ -1,2 +1,2 @@
 # Transposable Elements library generation from a pangenome
-(images/pantera.svg?raw=true "pantera")
+(images/pantera.png?raw=true "pantera")
