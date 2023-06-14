@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-version <- "1.0.2"
+version <- "0.0.2"
 
 ## For slurm
 # local({r <- getOption("repos")
@@ -133,6 +133,7 @@ zones <- list(
 
 
 ## Main loop
+lx(paste("pantera", version))
 lx(paste("Cores available:", detectCores()))
 
 ## Extract unique segements
