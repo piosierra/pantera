@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-version <- "0.0.2"
+version <- "0.0.3"
 
 ## For slurm
 # local({r <- getOption("repos")
@@ -135,6 +135,15 @@ zones <- list(
 ## Main loop
 lx(paste("pantera", version))
 lx(paste("Cores available:", detectCores()))
+lx(paste("Gfas list:", opt$gfas_list))
+lx(paste("Output:", opt$output_folder))
+lx(paste("Min. size:", opt$min_size))
+lx(paste("Max. size:", opt$max_size))
+lx(paste("Paths pairs to examine:", opt$max_size))
+lx(paste("Identity for clustering:", opt$identity))
+lx(paste("Min. sequences to create a consensus:", opt$min_cl))
+lx(paste("Sequences to cluster by batch:", opt$cl_size))
+
 
 ## Extract unique segements
 path <- 0
@@ -174,7 +183,7 @@ for (g in read.table(opt$gfas_list)$V1) {
         data_unique <- data[bt == 1]$seg
         segments_path <- segments[V2 %in% data_unique]
         colnames(segments_path) <- c("path", "pos", "seq")
-        segments_path$path <- paths[i, 2]
+        segments_path$path <- paths[i, 2] # Fix!!! This gives the name of the first path, it should be the one that the segment belongs to.
         lx(paste("Unique segments:", nrow(segments_path)))
         segments_unique <- rbindlist(list(segments_unique, segments_path))
       }
