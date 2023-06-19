@@ -76,6 +76,7 @@ if (is.null(opt$min_size)) { # Minimun size of TE
 }
 
 if (is.null(opt$max_size)) { # Maximum size of TE
+  opt$min_size <- 20000
 }
 
 if (is.null(opt$max_pairs)) { # Maximum number of paths pairs to examine
