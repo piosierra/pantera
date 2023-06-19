@@ -212,7 +212,7 @@ process_zone <- function(zone) {
   segment_u <- segments_unique[len > start & len < end]
 
   ## Divide each zone in subsets if segments larger than
-  segment_sets <- split(segment_u, (1:nrow(segment_u)) %/% cl_size)
+  segment_sets <- split(segment_u, (1:nrow(segment_u)) %/% opt$cl_size)
   lx(paste("Segment sets:", length(segment_sets)))
   for (ss in 1:length(segment_sets)) {
     sg <- segment_sets[[ss]]
