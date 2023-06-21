@@ -273,7 +273,7 @@ process_zone <- function(zone) {
         consensi,
         data.table(
           name = gsub(".>.","#",paste0(data_sol[cluster == u]$name,collapse="")),
-          seq = as.character(cons)
+          seq = gsub("-", "", as.character(cons))
         )
       ))
     }
