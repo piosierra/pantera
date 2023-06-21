@@ -2,10 +2,7 @@
 
 version <- "0.0.5"
 
-# v5 
-# Improvements on selection of segments
-# Correct path added to name
-# Zones dynamically created
+
 
 
 ### To Do
@@ -130,7 +127,7 @@ reformatDNA <- function(dna) {
 # @ Auxiliary function for log exits
 lx <- function(x) {
 #  print(paste0(format(Sys.time(), "%H:%M:%S"), " [pantera ", version, "] ", x))
-  cat(paste0(format(Sys.time(), "%H:%M:%S"), " \033[95;1;1m[pantera ", version, "]\033[0m ", x, "\n"))
+  cat(paste0(format(Sys.time(), "%y-%m-%d:%H:%M:%S"), " \033[95;1;1m[pantera ", version, "]\033[0m ", x, "\n"))
 }
 
 
@@ -266,15 +263,16 @@ process_zone <- function(zone) {
     )
     consensi <- data.table(name = as.character(), seq = as.character())
     for (u in unique(data_sol$cluster)) {
-      y <- strsplit(sg[name %in% data_sol[cluster == u]$name]$seq, "")
-      names(y) <- sg[name %in% data_sol[cluster == u]$name]$name
-      seqs <- as.DNAbin(y)
+      clust_temp <- strsplit(sg[name %in% data_sol[cluster == u]$name]$seq, "")
+      names(clust_temp) <- sg[name %in% data_sol[cluster == u]$name]$name
+      seqs <- as.DNAbin(clust_temp)
       ali <- mafft(seqs, thread = -1, exec = mafft_exec)
-      cons <- seq_consensus(dna(reformatDNA(ali)), gaps = F)
+      cons <- seq_consensus(dna(reformatDNA(ali)), 
+                            method = "chr_ambiguity") # can be gaps = F
       consensi <- rbindlist(list(
         consensi,
         data.table(
-          name = data_sol[cluster == u][1]$name,
+          name = gsub(".>.","#",paste0(data_sol[cluster == u]$name,collapse="")),
           seq = as.character(cons)
         )
       ))
@@ -287,4 +285,9 @@ process_zone <- function(zone) {
   return(0)
 }
 
-mclapply(zones, process_zone)
+end <- mclapply(zones, process_zone)
+if (unique(end)!=0) {
+  lx("Some zones reported errors")
+} else {
+  lx("All zones processed.")
+}
