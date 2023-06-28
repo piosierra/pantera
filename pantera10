@@ -294,7 +294,9 @@ if (!file.exists(paste0(opt$output_folder,"/all_segments.fa"))) {
   writeLines(t(segments_unique[, c("name", "seq")]), fileConn)
   close(fileConn)
 } else {
-  opt$min_cl <- 0
+  if (file_exists("pantera_lib_0.fa")) {
+    opt$min_cl <- 0
+  }
   setwd(opt$output_folder)
 }
 
