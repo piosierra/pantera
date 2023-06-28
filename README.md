@@ -29,4 +29,6 @@ TO DO:
 # v0.0.8
 # Added paramether to reduce number of paths to use by size (quantile)
 
+# v0.0.8_alt
+# Reiteration on consensus segments.
 
