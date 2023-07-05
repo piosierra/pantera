@@ -14,6 +14,14 @@ TO DO:
 - Final classifier (Optional)
 - Final report
 
+# v0.1.1
+# Updated defaults
+# Zones definition based only on cluster size
+# Fixed number of rounds and behaviour after first
+# New consensus function
+
+
+
 # v0.0.5 
 # Improvements on selection of segments
 # Correct path added to name
