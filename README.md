@@ -9,34 +9,23 @@ DONE:
 - Consensus sequences for "zones"
 
 TO DO:
-- Cluster final sets
 - Structure filter
 - Final classifier (Optional)
 - Final report
 
-# v0.1.1
-# Updated defaults
-# Zones definition based only on cluster size
-# Fixed number of rounds and behaviour after first
-# New consensus function
-
-
-
-# v0.0.5 
-# Improvements on selection of segments
-# Correct path added to name
-# Zones dynamically created
-# More info included in names. It can be used in the postprocessing.
-
-# v0.0.6
-# Earlier removal of segments by size
-
-# v0.0.7
-# Unified final library
-
-# v0.0.8
-# Added paramether to reduce number of paths to use by size (quantile)
-
-# v0.0.8_alt
-# Reiteration on consensus segments.
-
+## v0.1.1
+- Updated defaults
+- Zones definition based only on cluster size
+- Fixed number of rounds and behaviour after first
+- New consensus function
+## v0.0.8
+- Added paramether to reduce number of paths to use by size (quantile)
+## v0.0.7
+- Unified final library
+## v0.0.6
+- Earlier removal of segments by size
+## v0.0.5 
+- Improvements on selection of segments
+- Correct path added to name
+- Zones dynamically created
+- More info included in names. It can be used in the postprocessing.
