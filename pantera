@@ -92,7 +92,7 @@ if (is.null(opt$max_pairs)) { # Maximum number of paths pairs to examine
 }
 
 if (is.null(opt$identity)) { # Minimum identity for clustering
-  opt$identity <- 98
+  opt$identity <- 95
 }
 
 if (is.null(opt$min_cl)) { # Minimium number of segments to create a consensus
