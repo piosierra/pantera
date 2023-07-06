@@ -2,15 +2,6 @@
 
 version <- "0.1.1"
 
-
-##### Remove in online version
-local({r <- getOption("repos")
-r["CRAN"] <- "https://cran.r-project.org"
-options(repos = r)
-})
-.libPaths(c("~/R/4.2.2", .libPaths()))
-######
-
 ## Libraries
 if (!require("data.table", quietly = TRUE)) {
   install.packages("data.table")
@@ -46,7 +37,7 @@ if (!require("seqinr", quietly = TRUE)) {
   install.packages("seqinr")
 }
 
-## Reading args
+## Read args
 spec <- matrix(
   c(
     "gfas_list",          "g", 1, "character",
@@ -121,8 +112,8 @@ reformatDNA <- function(dna) {
 
 ## Auxiliary function for log exits
 lx <- function(x) {
-#  print(paste0(format(Sys.time(), "%H:%M:%S"), " [pantera ", version, "] ", x))
-  cat(paste0(format(Sys.time(), "%y-%m-%d:%H:%M:%S"), " \033[95;1;1m[pantera ", version, "]\033[0m ", x, "\n"))
+  cat(paste0(format(Sys.time(), "%y-%m-%d:%H:%M:%S"), " \033[95;1;1m[pantera ",
+             version, "]\033[0m ", x, "\n"))
 }
 
 ## Read gfa files
@@ -215,7 +206,6 @@ process_zone <- function(zone) {
   for (ss in 1:length(segment_sets)) {
     sg <- segment_sets[[ss]]
     sg$seq <- unlist(lapply(sg$seq, function(x) {gsub("[^A|^T|^G|^C]","N",x)}))
-#    sg[,name:=paste0("round",round,"-",.I)]
     seqs_splitted <- strsplit(sg$seq, "")
     names(seqs_splitted) <- sg$name
     sol <- otu(seqs_splitted, 
@@ -224,8 +214,9 @@ process_zone <- function(zone) {
                nstart = 20, 
     #           method = "farthest"
                )
-    sol_list <- sol[sol %in% names(table(sol)[table(sol)>=opt$min_cl])]
-    lx(paste("# of clusters ", start, "-", end, "-", ss, ":", length(unique(sol_list))))
+    sol_list <- sol[sol %in% names(table(sol)[table(sol) >= opt$min_cl])]
+    lx(paste("# of clusters ", start, "-", end, "-", ss, ":", 
+             length(unique(sol_list))))
     names(sol_list) <- gsub("\\*", "", names(sol_list))
     data_sol <- data.table(
       name = names(sol_list),
@@ -243,15 +234,10 @@ process_zone <- function(zone) {
                      ep = 0.123, 
            #          thread = -1, 
                      exec = mafft_exec)
-   #     cons <- as.character(seq_consensus(dna(reformatDNA(ali)), 
-    #                          method = "chr_majority", gaps = T))
         cons <- consensus(as.matrix(reformatDNA(ali)), threshold = cons_threshold)
       } else {
         cons <- toupper(paste0(unlist(as.character(seqs)),collapse=""))
       }
-      
-      #     fwrite(list(gr),paste0("consensi_", start, "_", end, "-", ss,"-",u, ".maf"), row.names = T, col.names = F)
-       # can be gaps = F
       consensi <- rbindlist(list(consensi,data.table(
           name = paste0(">",paste0(unique(gsub("[^a-z^A-Z^0-9].*","",
                                    gsub(">","",data_sol[cluster == u]$name))),
@@ -270,6 +256,8 @@ process_zone <- function(zone) {
   return(0)
 }
 
+
+
 ### MAIN
 
 ## Confirm mafft is available
@@ -281,7 +269,7 @@ if (length(grep("mafft", mafft_exec)) > 0) {
   stop()
 }
 
-## DF to store unique segments
+## DF to store the unique segments
 segments_unique <- data.table(
   path = as.character(),
   seg = as.character(),
@@ -328,10 +316,10 @@ while (TRUE) {
   segments_unique[,len :=  nchar(seq)]
   segments_unique <- segments_unique[order(-len)]
   if (round > 1) {
-    opt$identity <- 90
+    opt$identity <- 95
     opt$min_cl <- 0
     opt$cl_size <- 30
-    cons_threshold <- 0
+    cons_threshold <- 0.01
   #  opt$cores <- 1
     segments_unique[,name:= paste0(name,"-",.I)]
   } 
@@ -346,15 +334,14 @@ while (TRUE) {
   lx(paste("Processing:", nrow(segments_unique), "segments"))
   lx(paste("Largest segment:", max(segments_unique$len)))
   lx(paste("Smallest segment:", min(segments_unique$len)))
-   # size of previous library to compare with final result
   dir.create(paste0("loop_",round), showWarnings = FALSE)
   setwd(paste0("loop_",round))
-#  zones <- rev(lapply(levels(cut_number(segments_unique$len,min(detectCores(), nrow(segments_unique) %/% 20))), 
-#                 function(x){ c(as.numeric(gsub("·*[\\(|\\[]","",gsub(",.*","",x))),
-#                                as.numeric(gsub(".*,","",gsub("\\].*","",x))))}))
-#  zones <- list(c(min(segments_unique$len)-1,max(segments_unique$len)+1)) 
   z <- segments_unique[seq(1,nrow(segments_unique),opt$cl_size)]$len
-  zones <- asplit(data.frame(start = z[-length(z)], end = z[-1]),1)
+  if (length(z) < 2) {
+    zones <- data.frame(start = 1, end = nrow(segments_unique))
+  } else {
+    zones <- asplit(data.frame(start = z[-length(z)], end = z[-1]),1)
+  }
   lx(paste("Processing:", length(zones), "windows"))
   loop_exit <- mclapply(zones,
                         process_zone,
