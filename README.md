@@ -13,6 +13,14 @@ TO DO:
 - Final classifier (Optional)
 - Final report
 
+## v0.1.4
+Fixed defaults.
+
+## v0.1.3
+Fixed reverse complement
+
+## v0.1.2
+Fast search of segments.
 ## v0.1.1
 - Updated defaults
 - Zones definition based only on cluster size
