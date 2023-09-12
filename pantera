@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
 
-version <- "0.1.1"
+version <- "0.1.6"
+
+options(warn=1)
 
 ## Libraries
 if (!require("data.table", quietly = TRUE)) {
@@ -17,9 +19,6 @@ if (!require("parallel", quietly = TRUE)) {
 }
 if (!require("ips", quietly = TRUE)) {
   install.packages("ips")
-}
-if (!require("stringr", quietly = TRUE)) {
-  install.packages("stringr")
 }
 if (!require("BiocManager", quietly = TRUE)) {
   install.packages("BiocManager")
@@ -48,7 +47,11 @@ spec <- matrix(
     "min_size",           "s", 1, "integer",
     "max_size",           "l", 1, "integer",
     "max_pairs",          "p", 1, "integer",
+    "Ns",                 "n", 1, "integer",
     "paths_quantile",     "q", 1, "integer",
+    "k",                  "k", 1, "integer",
+    "segments_shared",    "e", 1, "integer",
+    "dual",               "d", 0, "logical",
     "help",               "h", 0, "logical"
   ),
   byrow = TRUE,
@@ -59,6 +62,13 @@ opt <- getopt(spec)
 if (!is.null(opt$help)) {
   cat(getopt(spec, usage = TRUE))
   q(status = 1)
+}
+
+if (is.null(opt$dual)) {
+  dual <- FALSE
+} else
+{ 
+  dual <- TRUE
 }
 
 if (is.null(opt$gfas_list)) {
@@ -87,7 +97,19 @@ if (is.null(opt$identity)) { # Minimum identity for clustering
 }
 
 if (is.null(opt$min_cl)) { # Minimium number of segments to create a consensus
-  opt$min_cl <- 2
+  opt$min_cl <- 2 
+}
+
+if (is.null(opt$segments_shared)) { # Minimium number of segments shared by paths
+  opt$segments_shared <- 30
+}
+
+if (is.null(opt$Ns)) { # Maximum percentaje of Ns in segment.
+  opt$Ns <- 5
+}
+
+if (is.null(opt$k)) { # kmer size for clustering.
+  opt$k <- 7 
 }
 
 if (is.null(opt$cl_size)) { # Maximum size of cluster to process
@@ -104,10 +126,17 @@ reformatDNA <- function(dna) {
     nrow = (length(row.names(dna))),
     dimnames = dimnames(dna)
   )
-  temp <- dna(apply(temp, 1, function(x) {
+  temp <- apply(temp, 1, function(x) {
     paste0(x, collapse = "")
-  }))
+  })
   return(temp)
+}
+
+## Create DNAbin from data.frame
+makeDNAbin <- function(df) {
+  y <- t(sapply(strsplit(df$seq,""), tolower))
+  rownames(y)<- df$name
+  return(as.DNAbin(y))
 }
 
 ## Auxiliary function for log exits
@@ -144,7 +173,17 @@ get_segments <- function(segments_unique) {
         ))
       }
     )
-    paths_s <- paths_s[unlist(lapply(paths_s,length)) >= 
+    if (dual) {
+    paths_s2 <- mclapply(paths_s, function(x) {head(x[-1],-1)[head(x[-1],-1) %in% segments$seg]})
+    b <- unlist(paths_s2)
+    s <- segments[seg %in% names(table(b)[table(b)==1])]
+    s[,path:=substr(g,1,5)] 
+        segments_unique <- rbindlist(list(segments_unique, 
+                                            s[,c("path","seg",
+                                                 "seq", "len")]))
+    }
+    else {
+       paths_s <- paths_s[unlist(lapply(paths_s,length)) >= 
                          quantile(unlist(lapply(paths_s,length)),
                                   (100-opt$paths_quantile)/100)]
     lx(paste("Using paths with length >= ", 
@@ -159,7 +198,7 @@ get_segments <- function(segments_unique) {
         segs_shared <- sum(unique(paths_s[i][[1]]) %in% unique(paths_s[j][[1]])) /
           min(length(unique(paths_s[i][[1]])), length(unique(paths_s[j][[1]])))
         lx(paste("Shared segments:", segs_shared))
-        if (segs_shared > 0.3) {  # Magic number. Make parameter.
+        if (segs_shared > (opt$segments_shared/100)) { 
           p1 <- unique(paths_s[i][[1]])
           p2 <- unique(paths_s[j][[1]])
           pt <- unique(c(p1, p2))
@@ -176,16 +215,18 @@ get_segments <- function(segments_unique) {
       }
     }
   }
-  lx(paste("TOTAL Unique segments:", nrow(segments_unique)))
+
+        }
+    lx(paste("TOTAL Unique segments:", nrow(segments_unique)))
   segments_unique <- segments_unique[!duplicated(segments_unique$seg)]
   lx(paste("TOTAL Unique segments no dups:", nrow(segments_unique)))
-  segments_unique[, Ns := str_count(segments_unique$seq, "N")]
+  segments_unique[, Ns := lengths(regmatches(segments_unique$seq, gregexpr("N", segments_unique$seq)))]
   segments_unique[, len := nchar(seq)]
   segments_unique[, name := paste0(">", segments_unique$path, "_", 
                                    segments_unique$seg)]
   segments_unique <- segments_unique[len >= opt$min_size &
                                        len <= opt$max_size &
-                                       Ns < len * 0.05]  # Magic number. Make parameter.
+                                       Ns < (len * opt$Ns / 100)]  
   segments_unique <- segments_unique[order(len)]
   lx(paste("TOTAL Unique segments purged:", nrow(segments_unique)))
 return(segments_unique)
@@ -194,25 +235,28 @@ return(segments_unique)
 
 ## Generate consensus from the unique segments for each "zone"
 process_zone <- function(zone) {
-  start <- zone[2]
-  end <- zone[1]
+  start <- as.numeric(zone[1])
+  end <- as.numeric(zone[2])
   if (start != end) { # If they have the same value they were processed in another zone
   lx(paste("Procesing segments:", start, "-", end))
-  segment_u <- segments_unique[len > start & len < end]
+  segment_u <- segments_unique[len >= start][len <= end]
   
   ## Divide each zone in subsets if segments larger than
   segment_sets <- split(segment_u, (1:nrow(segment_u)) %/% opt$cl_size)
   lx(paste("Segment sets", start, "-", end, ":", length(segment_sets)))
   for (ss in 1:length(segment_sets)) {
     sg <- segment_sets[[ss]]
-    sg$seq <- unlist(lapply(sg$seq, function(x) {gsub("[^A|^T|^G|^C]","N",x)}))
-    seqs_splitted <- strsplit(sg$seq, "")
+    sg_seq <- lapply(sg$seq, function(x) {paste0(x, reverseComplement(DNAString(x)))})
+    sg_seq <- unlist(lapply(sg_seq, function(x) {gsub("[^A|^T|^G|^C]","N",x)}))
+    seqs_splitted <- strsplit(sg_seq, "")
     names(seqs_splitted) <- sg$name
+#    a1 <- makeDNAbin(sg[,c("name","seq")])
+#    seqs_splitted <- cbind(a1,ape::complement(a1))
     sol <- otu(seqs_splitted, 
-               k = 7, 
+               k = opt$k, 
                threshold = opt$identity / 100, 
-               nstart = 20, 
-    #           method = "farthest"
+               nstart = 20 
+    #         method = "farthest"
                )
     sol_list <- sol[sol %in% names(table(sol)[table(sol) >= opt$min_cl])]
     lx(paste("# of clusters ", start, "-", end, "-", ss, ":", 
@@ -224,29 +268,37 @@ process_zone <- function(zone) {
     )
     consensi <- data.table(name = as.character(), seq = as.character())
     for (u in unique(data_sol$cluster)) {
-      clust_temp <- strsplit(sg[name %in% data_sol[cluster == u]$name]$seq, "")
+      seqs_clust <- sg[name %in% data_sol[cluster == u]$name]$seq
+      minlen <- min(nchar(seqs_clust))
+      clust_temp <- strsplit(seqs_clust, "")
       names(clust_temp) <- sg[name %in% data_sol[cluster == u]$name]$name
       seqs <- as.DNAbin(clust_temp)
       if (length(seqs)>1) {
         ali <- mafft(seqs, 
-                  #   method = "globalpair", 
-                  #   maxiterate = 2, 
+               #      method = "globalpair", 
+               #      maxiterate = 2, 
+                     options = c("--adjustdirection"),
                      ep = 0.123, 
-           #          thread = -1, 
+                   #  thread = 1, 
                      exec = mafft_exec)
-        cons <- consensus(as.matrix(reformatDNA(ali)), threshold = cons_threshold)
+        cons <- toupper(consensus(as.matrix(reformatDNA(ali)), threshold = cons_threshold))
       } else {
         cons <- toupper(paste0(unlist(as.character(seqs)),collapse=""))
       }
+      cons <- gsub("-", "", cons)
+      if ((nchar(cons)*1.2)>minlen) {		
       consensi <- rbindlist(list(consensi,data.table(
-          name = paste0(">",paste0(unique(gsub("[^a-z^A-Z^0-9].*","",
+          name = paste0(">",substr(paste0(unique(gsub("[^a-z^A-Z^0-9].*","",
                                    gsub(">","",data_sol[cluster == u]$name))),
-                                  collapse=""),
+                                  collapse=""),1,7),
                         "-", start, "-", end,"-",round,"-",
                         length(clust_temp), "-",nchar(cons),"-",u),      
-          seq = gsub("-", "", cons)
+          seq = cons
         )))
-    }
+   }
+  }
+    
+
     fileconn <- file(paste0("consensi_", start, "_", end, "-", ss, ".fa"))
     writeLines(t(consensi), fileconn)
     close(fileconn)
@@ -284,10 +336,17 @@ lx(paste("Gfas list:", opt$gfas_list))
 lx(paste("Output:", opt$output_folder))
 lx(paste("Min. size:", opt$min_size))
 lx(paste("Max. size:", opt$max_size))
+lx(paste("Fast mode:", dual))
+if (!dual) {
 lx(paste("Paths pairs to examine:", opt$max_pairs))
+lx(paste("Minimum percentaje of shared segments:", opt$segments_shared))
+lx(paste("Percentage of paths to use:", opt$paths_quantile))
+}
 lx(paste("Identity for clustering:", opt$identity))
 lx(paste("Min. sequences to create a consensus:", opt$min_cl))
-lx(paste("Sequences to cluster by batch:", opt$cl_size))
+lx(paste("kmer size for clustering:", opt$k))
+lx(paste("Max percentage of Ns:", opt$Ns))
+
 
 dir.create(opt$output_folder, showWarnings = FALSE)
 
@@ -316,11 +375,11 @@ while (TRUE) {
   segments_unique[,len :=  nchar(seq)]
   segments_unique <- segments_unique[order(-len)]
   if (round > 1) {
-    opt$identity <- 95
+    opt$identity <- 94
     opt$min_cl <- 0
-    opt$cl_size <- 30
-    cons_threshold <- 0.01
-  #  opt$cores <- 1
+    opt$cl_size <- 100
+    cons_threshold <- 0.1
+    opt$cores <- 1
     segments_unique[,name:= paste0(name,"-",.I)]
   } 
   if (nrow(segments_unique)/prev > 0.9) { 
@@ -338,9 +397,9 @@ while (TRUE) {
   setwd(paste0("loop_",round))
   z <- segments_unique[seq(1,nrow(segments_unique),opt$cl_size)]$len
   if (length(z) < 2) {
-    zones <- data.frame(start = 1, end = nrow(segments_unique))
+    zones <- list(data.frame(start = segments_unique[nrow(segments_unique)]$len, end = segments_unique[1]$len))
   } else {
-    zones <- asplit(data.frame(start = z[-length(z)], end = z[-1]),1)
+    zones <- asplit(data.frame(start = z[-1], end = z[-length(z)]),1)
   }
   lx(paste("Processing:", length(zones), "windows"))
   loop_exit <- mclapply(zones,
