@@ -16,22 +16,16 @@ bgzip -@ 4 combined.fa
 samtools faidx combined.fa.gz
 ```
 
-3.1- Create the pangenome. 
+3.1- Create the pangenome. `-n` is the number of haplotypes/genomes included. `-t` is the number of threads.
 ```
-pggb \
--i in.fa \       # input file in FASTA format
--o output \      # output directory
--n 9  \          # number of haplotypes
--t 16            # number of threads (defaults to ``getconf _NPROCESSORS_ONLN``)
--p 90 \          # (default) minimum average nucleotide identity for a seed mapping
--s 5000 \        # (default) segment length
+pggb -i combined.fa.gz -o output -n 9 -t 16 
 ```
 
 ## 2- Obtain the library from the gfa files
 2.1 Create one file with the list of the full paths to the gfa files that will be analyzed.
-2.2 Run :purple_square:**pantera**:purple_square:.
+2.2 Run :purple_square:**pantera**:purple_square:, with `-c` as the number of threads.
 ```
-pantera -g gfas_list -o output_folder
+pantera -g gfas_list -c 16 -o output_folder
 ```
 
 ## 3- Classify the library obtained
