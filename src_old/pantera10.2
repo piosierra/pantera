@@ -1,0 +1,343 @@
+#!/usr/bin/env Rscript
+
+version <- "0.0.8alt"
+
+
+
+
+### To Do
+# Classifier
+# Improvement: accept compressed gfas
+
+
+
+## For slurm
+# local({r <- getOption("repos")
+# r["CRAN"] <- "https://cran.r-project.org"
+# options(repos = r)
+# })
+# .libPaths(c("~/R/4.2.2", .libPaths()))
+
+## Libraries
+if (!require("data.table", quietly = TRUE)) {
+  install.packages("data.table")
+}
+if (!require("kmer", quietly = TRUE)) {
+  install.packages("kmer")
+}
+if (!require("getopt", quietly = TRUE)) {
+  install.packages("getopt")
+}
+if (!require("parallel", quietly = TRUE)) {
+  install.packages("parallel")
+}
+if (!require("ips", quietly = TRUE)) {
+  install.packages("ips")
+}
+if (!require("stringr", quietly = TRUE)) {
+  install.packages("stringr")
+}
+if (!require("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+if (!require("Biostrings", quietly = TRUE)) {
+  BiocManager::install("Biostrings")
+}
+if (!require("bioseq", quietly = TRUE)) {
+  BiocManager::install("bioseq")
+}
+if (!require("ggplot2", quietly = TRUE)) {
+  install.packages("ggplot2")
+}
+
+## Reading args
+spec <- matrix(
+  c(
+    "gfas_list",          "g", 1, "character",
+    "identity",           "i", 1, "integer",
+    "min_cl",             "m", 1, "integer",
+    "cl_size",            "c", 1, "integer",
+    "output_folder",      "o", 1, "character",
+    "min_size",           "s", 1, "integer",
+    "max_size",           "l", 1, "integer",
+    "max_pairs",          "p", 1, "integer",
+    "paths_quantile",     "q", 1, "integer",
+    "help",               "h", 0, "logical"
+  ),
+  byrow = TRUE,
+  ncol = 4
+)
+opt <- getopt(spec)
+
+if (!is.null(opt$help)) {
+  cat(getopt(spec, usage = TRUE))
+  q(status = 1)
+}
+
+if (is.null(opt$gfas_list)) {
+  print("-gfas_list missing")
+  q(status <- 1)
+}
+
+if (is.null(opt$output_folder)) {
+  opt$output_folder <- "pantera_output"
+}
+
+if (is.null(opt$min_size)) { # Minimun size of TE
+  opt$min_size <- 200
+}
+
+if (is.null(opt$max_size)) { # Maximum size of TE
+  opt$max_size <- 20000
+}
+
+if (is.null(opt$max_pairs)) { # Maximum number of paths pairs to examine
+  opt$max_pairs <- Inf
+}
+
+if (is.null(opt$identity)) { # Minimum identity for clustering
+  opt$identity <- 97
+}
+
+if (is.null(opt$min_cl)) { # Minimium number of segments to create a consensus
+  opt$min_cl <- 2
+}
+
+if (is.null(opt$cl_size)) { # Maximum size of cluster to process
+  opt$cl_size <- 200
+}
+
+if (is.null(opt$paths_quantile)) { # set of paths to process
+  opt$paths_quantile <- 0
+}
+
+## Auxiliary function to convert from dna to binDNA format
+reformatDNA <- function(dna) {
+  temp <- matrix(as.character(dna),
+    nrow = (length(row.names(dna))),
+    dimnames = dimnames(dna)
+  )
+  temp <- dna(apply(temp, 1, function(x) {
+    paste0(x, collapse = "")
+  }))
+  return(temp)
+}
+
+# @ Auxiliary function for log exits
+lx <- function(x) {
+#  print(paste0(format(Sys.time(), "%H:%M:%S"), " [pantera ", version, "] ", x))
+  cat(paste0(format(Sys.time(), "%y-%m-%d:%H:%M:%S"), " \033[95;1;1m[pantera ", version, "]\033[0m ", x, "\n"))
+}
+
+get_segments <- function() {
+  ## Extract unique segments
+  pair <- 0 # counter for opt$max_pairs, probably should have another name. Changed to pair
+  for (g in read.table(opt$gfas_list)$V1) {
+    lx(paste("Procesing file =", g))
+    segments <- fread(cmd = paste0("grep \"^S\" ", g), header = FALSE)
+    segments <- segments[, c(1:3)]
+    colnames(segments) <- c("tag","seg","seq")
+    lx(paste("Number of segments =", nrow(segments)))
+    segments[, len := nchar(seq)]
+    segments <- segments[len >= opt$min_size & len <= opt$max_size]
+    lx(paste("Number of valid size segments =", nrow(segments)))
+    paths <- fread(cmd = paste0("grep \"^P\" ", g), header = FALSE)
+    lx(paste("Number of paths =", nrow(paths)))
+    paths_s <- mclapply(
+      paths$V3,
+      function(x) {
+        as.numeric(gsub(
+          "-", "",
+          gsub(
+            "\\+", "",
+            strsplit(x, ",")[[1]]
+          )
+        ))
+      }
+    )
+    paths_s <- paths_s[unlist(lapply(paths_s,length))>=quantile(unlist(lapply(paths_s,length)),opt$paths_quantile/100)]
+    lx(paste("Using paths with length >= ", quantile(unlist(lapply(paths_s,length)),opt$paths_quantile/100)))
+    lx(paste("number of paths = ", length(paths_s)))
+    for (i in 1:(length(paths_s) - 1)) {
+      for (j in (i + 1):length(paths_s)) {
+        pair <- pair + 1
+        if (pair > opt$max_pairs) break
+        lx(paste("Paths:", paths$V2[i], "<->", paths$V2[j]))
+        segs_shared <- sum(unique(paths_s[i][[1]]) %in% unique(paths_s[j][[1]])) /
+          min(length(unique(paths_s[i][[1]])), length(unique(paths_s[j][[1]])))
+        lx(paste("Shared segments:", segs_shared))
+        if (segs_shared > 0.3) {  # Magic number. Make paramether.
+          p1 <- unique(paths_s[i][[1]])
+          p2 <- unique(paths_s[j][[1]])
+          pt <- unique(c(p1, p2))
+          data <- data.table(seg = pt)
+          data[, new := (seg %in% p1)+2*(seg %in% p2)]
+          segments_path <- merge(segments, data[new<3])
+          segments_path[new==1,path:=paths$V2[i]]
+          segments_path[new==2,path:=paths$V2[j]]
+          lx(paste("Unique segments:", nrow(segments_path)))
+          segments_unique <- rbindlist(list(segments_unique, segments_path[,c("path","seg","seq", "len")]))
+        }
+      }
+    }
+  }
+  lx(paste("TOTAL Unique segments:", nrow(segments_unique)))
+  segments_unique <- segments_unique[!duplicated(segments_unique$seg)]
+  lx(paste("TOTAL Unique segments no dups:", nrow(segments_unique)))
+  segments_unique[, Ns := str_count(segments_unique$seq, "N")]
+  segments_unique[, len := nchar(seq)]
+  segments_unique[, name := paste0(">", segments_unique$path, "_", segments_unique$seg)]
+  segments_unique <- segments_unique[len >= opt$min_size &
+                                       len <= opt$max_size &
+                                       Ns < len * 0.05]  # Magic number. Make paramether.
+  segments_unique <- segments_unique[order(len)]
+  lx(paste("TOTAL Unique segments purged:", nrow(segments_unique)))
+}
+
+
+## Generate consensus from the unique segments for each "zone"
+process_zone <- function(zone) {
+  start <- zone[1]
+  end <- zone[2]
+  lx(paste("Procesing segments:", start, "-", end))
+  segment_u <- segments_unique[len > start & len < end]
+  
+  ## Divide each zone in subsets if segments larger than
+  segment_sets <- split(segment_u, (1:nrow(segment_u)) %/% opt$cl_size)
+  lx(paste("Segment sets", start, "-", end, ":", length(segment_sets)))
+  for (ss in 1:length(segment_sets)) {
+    sg <- segment_sets[[ss]]
+    sg$seq <- unlist(lapply(sg$seq, function(x) {gsub("[^A|^T|^G|^C]","N",x)}))
+    sg[,name:=paste0("round",round,"-",.I)]
+    der <- strsplit(sg$seq, "")
+    names(der) <- sg$name
+    sol <- otu(der, k = 7, threshold = opt$identity / 100, nstart = 10)
+    #  sol_rep <- sol[sol %in% sol[grep("\\*", names(sol), invert = T)]][grep("\\*", names(sol[sol %in% sol[grep("\\*", names(sol), invert = T)]]))]
+    #   table(sol[sol %in% sol_rep])[table(sol[sol %in% sol_rep]) >= opt$min_cl]
+    #   sol_list <- sol[sol %in% sol_rep]
+    sol_list <- sol[sol %in% names(table(sol)[table(sol)>=opt$min_cl])]
+    lx(paste("# of clusters ", start, "-", end, "-", ss, ":", length(unique(sol_list))))
+    names(sol_list) <- gsub("\\*", "", names(sol_list))
+    data_sol <- data.table(
+      #     name = gsub(".*:", "", names(sol_list)),
+      name = names(sol_list),
+      cluster = sol_list
+    )
+    consensi <- data.table(name = as.character(), seq = as.character())
+    for (u in unique(data_sol$cluster)) {
+      clust_temp <- strsplit(sg[name %in% data_sol[cluster == u]$name]$seq, "")
+      names(clust_temp) <- sg[name %in% data_sol[cluster == u]$name]$name
+      seqs <- as.DNAbin(clust_temp)
+      if (length(seqs)>1) {
+        ali <- mafft(seqs, thread = -1, exec = mafft_exec)
+        cons <- as.character(seq_consensus(dna(reformatDNA(ali)), 
+                              method = "chr_majority", gaps = F))
+      } else {
+        cons <- toupper(paste0(unlist(as.character(seqs)),collapse=""))
+      }
+      
+      #     fwrite(list(gr),paste0("consensi_", start, "_", end, "-", ss,"-",u, ".maf"), row.names = T, col.names = F)
+       # can be gaps = F
+      consensi <- rbindlist(list(
+        consensi,
+        data.table(
+          name = paste0(">",gsub(">","###",paste0(data_sol[cluster == u]$name,collapse="")),"-",length(clust_temp)),
+          seq = gsub("-", "", cons)
+        )
+      ))
+    }
+    fileconn <- file(paste0("consensi_", start, "_", end, "-", ss, ".fa"))
+    writeLines(t(consensi), fileconn)
+    close(fileconn)
+  }
+  lx(paste("Zone:", zone[2], "completed."))
+  return(0)
+}
+
+### MAIN
+
+## Confirm mafft is available
+mafft_exec <- system("which mafft", intern = TRUE)
+if (length(grep("mafft", mafft_exec)) > 0) {
+  print(paste("mafft exec:", mafft_exec))
+} else {
+  lx("mafft not found")
+  stop()
+}
+
+## DF to store unique segments
+segments_unique <- data.table(
+  path = as.character(),
+  seg = as.character(),
+  seq = as.character(),
+  len = as.numeric()
+)
+
+## Main loop
+lx(paste("pantera", version))
+lx(paste("Cores available:", detectCores()))
+lx(paste("Gfas list:", opt$gfas_list))
+lx(paste("Output:", opt$output_folder))
+lx(paste("Min. size:", opt$min_size))
+lx(paste("Max. size:", opt$max_size))
+lx(paste("Paths pairs to examine:", opt$max_pairs))
+lx(paste("Identity for clustering:", opt$identity))
+lx(paste("Min. sequences to create a consensus:", opt$min_cl))
+lx(paste("Sequences to cluster by batch:", opt$cl_size))
+
+dir.create(opt$output_folder, showWarnings = FALSE)
+
+if (!file.exists(paste0(opt$output_folder,"/all_segments.fa"))) {
+  get_segments()
+  setwd(opt$output_folder)
+  fileConn <- file("all_segments.fa")
+  writeLines(t(segments_unique[, c("name", "seq")]), fileConn)
+  close(fileConn)
+} else {
+  opt$min_cl <- 0
+  setwd(opt$output_folder)
+}
+
+round <- 0
+prev <- Inf
+while (TRUE) {
+  round <- round + 1
+  if (prev!=Inf) {
+    lx(paste("Consensi generated:", prev))
+  }
+  lx(paste("Starting loop:", round))
+  segu_names <- fread(cmd = "grep '>' all_segments.fa", header = F, sep = "\t")
+  segu_seqs <- fread(cmd = "grep -v '>' all_segments.fa", header = F, sep = "\t")
+  segments_unique <- data.table(name = segu_names$V1, seq = segu_seqs$V1)
+  segments_unique[,len :=  nchar(seq)]
+  segments_unique <- segments_unique[order(len)]
+  lx(paste("Processing: ", nrow(segments_unique), " segments"))
+  if (nrow(segments_unique)/prev > 0.6) { 
+    break 
+    } else {
+      prev <- nrow(segments_unique)
+    }
+   # size of previous library to compare with final result
+  dir.create(paste0("loop_",round), showWarnings = FALSE)
+  setwd(paste0("loop_",round))
+  zones <- rev(lapply(levels(cut_number(segments_unique$len,min(detectCores() * 4, nrow(segments_unique) %/% 20))), 
+                 function(x){ c(as.numeric(gsub("·*[\\(|\\[]","",gsub(",.*","",x))),
+                                as.numeric(gsub(".*,","",gsub("\\].*","",x))))}))
+  print(paste("XXXXXXX",max(1,floor(detectCores() * 0.8))))
+  loop_exit <- mclapply(zones,
+                        process_zone,
+                        mc.preschedule = FALSE, 
+                        mc.cores = max(1,floor(detectCores() * 0.5)))
+if (unique(loop_exit)!=0) {
+  lx("Some zones reported errors")
+} else {
+  lx("All zones processed.")
+}
+
+system(paste0("mv ../all_segments.fa ../pantera_lib_", round - 1, ".fa"))
+system("cat consen*.fa > ../all_segments.fa")
+setwd("..")
+
+
+
+}

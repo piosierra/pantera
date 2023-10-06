@@ -2,37 +2,38 @@
 # Transposable Elements library generation from a pangenome
 
 A pangenome is a collection of genomes or haplotypes that can be aligned and stored as a variation graph in gfa format. 
-This tool receives as input a list of gfa files of non overlapping variation graphs and produces a library of transposable elements found to be polymorphic on those pangenomes.
+:purple_square:**pantera**:purple_square: receives as input a list of gfa files of non overlapping variation graphs and produces a library of transposable elements found to be polymorphic on that pangenome.
 
-TO DO:
-- Structure filter
-- Final classifier (Optional)
-- Final report
+## 1- Prepare your gfa files
+Use [**pggb**](https://pggb.readthedocs.io/) to create the pangenome from your starting genome sequences. In its most basic form:
+1.1- Create a sigle file with the fasta files.
+`cat *.fa combined.fa`
+2.1- Compress and index the file.
+`bgzip -@ 4 combined.fa`
+`samtools faidx combined.fa.gz`
+3.1- Create the pangenome. 
+`pggb \
+-i in.fa \       # input file in FASTA format
+-o output \      # output directory
+-n 9  \          # number of haplotypes
+-t 16            # number of threads (defaults to ``getconf _NPROCESSORS_ONLN``)
+-p 90 \          # (default) minimum average nucleotide identity for a seed mapping
+-s 5000 \        # (default) segment length`
 
-## v0.1.6
-"Fast" mode for just two happlotypes. More noisy but gets the work done.
+## 2- Obtain the library from the gfa files
+2.1 Create one file with the list of the full paths to the gfa files that will be analyzed.
+2.2 Run :purple_square:**pantera**:purple_square:.
+`pantera -g gfas_list -o output_folder`
 
-## v0.1.4
-Fixed defaults.
+## 3- Classify the library obtained
+3.1 You can use the TE classifier of your choice. For example, with RepeatClassifier, which is part of the [Dfam TE tools](https://github.com/Dfam-consortium/TETools).
+`RepeatClassifier -consensi pantera_lib.fa`
 
-## v0.1.3
-Fixed reverse complement
 
-## v0.1.2
-Fast search of segments.
-## v0.1.1
-- Updated defaults
-- Zones definition based only on cluster size
-- Fixed number of rounds and behaviour after first
-- New consensus function
-## v0.0.8
-- Added paramether to reduce number of paths to use by size (quantile)
-## v0.0.7
-- Unified final library
-## v0.0.6
-- Earlier removal of segments by size
-## v0.0.5 
-- Improvements on selection of segments
-- Correct path added to name
-- Zones dynamically created
-- More info included in names. It can be used in the postprocessing.
+
+
+
+
+
+
+
