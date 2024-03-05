@@ -30,7 +30,7 @@ pantera -g gfas_list -c 16 -o output_folder
 ```
 
 ### 3- Classify the library obtained
-3.1 Use RepeatClassifier, which is part of the [Dfam TE tools](https://github.com/Dfam-consortium/TETools) or your classifier of choice to classify the sequences obtained.
+3.1 Use RepeatClassifier, which is part of the [Dfam TE tools](https://github.com/Dfam-consortium/TETools), or your classifier of choice to classify the sequences obtained.
 ```
 RepeatClassifier -consensi pantera_lib.fa
 ```
