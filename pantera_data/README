@@ -1,0 +1,17 @@
+### Files for the pantera paper
+
+- pantera_suplementary_tables.ods : Tables to produce the figures of the paper.
+- Dmel : Results for Drosophila melanogaster
+- Osav : Results for Oryza sativa
+- Drer : Results for Danio rerio
+- Ttra : Results for Trachurus trachurus
+- Acry : Results for Aquila crysaetos
+
+For Dmel, Osav and Drer there are three folders for each of the libraries 
+(reference, pantera, alternate tool). Ttra and Acry lack a reference library.
+The files in each folder are:
+- ***.tbl : Repeatmasker results
+- ***.classified.sl : TE Library
+- ***.classified.sl.benchmark2 : pantercheck results for that library
+- complete_lines : check for LINE orfs conservation
+
