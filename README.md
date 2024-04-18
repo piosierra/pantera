@@ -1,8 +1,8 @@
 ![pantera](images/pantera.svg?raw=true "pantera")
-# Transposable Elements library generation from a pangenome
+# Identification of transposable element families from pangenome polymorphisms
 
 A pangenome is a collection of genomes or haplotypes that can be aligned and stored as a variation graph in gfa format. 
-**pantera** receives as input a list of gfa files of non overlapping variation graphs and produces a library of transposable elements found to be polymorphic on that pangenome.
+${\color{magenta}\textsf{\textbf{pantera}}}$ receives as input a list of gfa files of non overlapping variation graphs and produces a library of transposable elements found to be polymorphic on that pangenome.
 
 ### 1- Prepare your gfa files
 Use [**pggb**](https://pggb.readthedocs.io/) to create the pangenome from your starting genome sequences. In its most basic form:
@@ -24,7 +24,8 @@ pggb -i yourspecies.chr1.fa.gz -o output -n 9 -t 16
 
 ### 2- Obtain the library from the gfa files
 2.1 Create one file `gfas_list` with the list of the full paths to the gfa files that will be analyzed.
-2.2 Run **pantera**, with `-c` as the number of threads.
+
+2.2 Run ${\color{magenta}\textsf{\textbf{pantera}}}$, with `-c` as the number of threads.
 ```
 pantera -g gfas_list -c 16 -o output_folder
 ```
@@ -34,6 +35,15 @@ pantera -g gfas_list -c 16 -o output_folder
 ```
 RepeatClassifier -consensi pantera_lib.fa
 ```
+***
+### Citing ${\color{magenta}\textsf{\textbf{pantera}}}$
+If you use ${\color{magenta}\textsf{\textbf{pantera}}}$ in your work, please cite:
+
+
+Sierra, P., and Durbin, R. (2024). Identification of transposable element families from pangenome polymorphisms. 2024.04.05 https://www.biorxiv.org/content/10.1101/2024.04.05.588311v1 (preprint)
+
+
+
 
 
 

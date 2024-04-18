@@ -1,18 +1,13 @@
 #!/usr/bin/env Rscript
 
-version <- "0.2.0"
+version <- "0.2.1"
 
-### No consensus on the first round. Just select segments that cluster.
-
+# Uncomment and change the path to a folder to install needed libraries if you 
+# don't have access to the default one (e.g. in a cluster)
+# .libPaths(c("pathtowritablefolder", .libPaths())) 
 
 options(warn=0)
 
-local({r <- getOption("repos")
-r["CRAN"] <- "https://cran.r-project.org"
-options(repos = r)
-})
-.libPaths(c("~/R/4.2.2", .libPaths()))
-######
 
 ## Libraries
 if (!require("kmer", quietly = TRUE)) {
@@ -171,7 +166,7 @@ if (is.null(opt$min_edge)) { # Min leading edge (bases)
   opt$min_edge <- 3
 }
 
-if (is.null(opt$rep_factor)) { # MAx factor of repeated kmers
+if (is.null(opt$rep_factor)) { # Max factor of repeated kmers
   opt$rep_factor <- 44
 }
 
@@ -304,7 +299,7 @@ process_zone <- function(zone) {
         if (length(seqs)>1) {
           ali <- mafft(seqs, 
                        #     method = "globalpair", 
-                       #      maxiterate = 2, 
+                       #     maxiterate = 2, 
                        options = c("--adjustdirection"),
                        ep = 0.123, 
                        #  thread = 1, 
@@ -515,9 +510,7 @@ system("cat consen*.fa > ../all_segments.fa")
 setwd("..")
 gc()
 }
-print("END1")
-warnings()
-print("END2")
+
 
 
 
