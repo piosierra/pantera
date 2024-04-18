@@ -4,6 +4,10 @@
 A pangenome is a collection of genomes or haplotypes that can be aligned and stored as a variation graph in gfa format. 
 **pantera** receives as input a list of gfa files of non overlapping variation graphs and produces a library of transposable elements found to be polymorphic on that pangenome.
 
+### 0- Installing
+Simply download `pantera.R` and make it executable `chmod +x pantera.R` or run with Rscript `Rscript pantera.R` 
+
+
 ### 1- Prepare your gfa files
 Use [**pggb**](https://pggb.readthedocs.io/) to create the pangenome from your starting genome sequences. In its most basic form:
 
@@ -30,11 +34,24 @@ pggb -i yourspecies.chr1.fa.gz -o output -n 9 -t 16
 pantera -g gfas_list -c 16 -o output_folder
 ```
 
+### 2 a- (Optional) Identify structural features in the sequences
+```
+pantercheck.R pantera_lib.fa
+```
+
 ### 3- Classify the library obtained
 3.1 Use RepeatClassifier, which is part of the [Dfam TE tools](https://github.com/Dfam-consortium/TETools), or your classifier of choice to classify the sequences obtained.
 ```
 RepeatClassifier -consensi pantera_lib.fa
 ```
+***
+### Requirements
+**pantera** has been tested in Linux with R 4.2.2 to R 4.3.3
+
+**pantera** requires [MAFFT](https://mafft.cbrc.jp/alignment/software/) installed and available in the path.
+
+**pantercheck** requires [BLAST](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html#downloadblastdata) installed and available in the path.
+
 ***
 ### Citing **pantera**
 If you use **pantera** in your work, please cite:
