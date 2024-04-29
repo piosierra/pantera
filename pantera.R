@@ -200,15 +200,20 @@ lx <- function(x) {
 get_segments <- function(segments_unique) {
   ## Extract unique segments
   pair <- 0 # counter for opt$max_pairs
-  for (g in read.table(opt$gfas_list)$V1) {
+  if (grepl(".gfa$", opt$gfas_list)) {
+    g_list <- opt$gfas_list
+  } else {
+    g_list <- read.table(opt$gfas_list)$V1
+  }
+  for (g in g_list) {
     gc()
     lx(paste("Procesing file =", g))
-    segments <- fread(cmd = paste0("grep \"^S\" ", g), header = FALSE)
+    segments <- fread(cmd = paste0("grep \"^S\" ", g), header = FALSE, fill = T)
     segments <- segments[, c(1:3)]
     colnames(segments) <- c("tag","seg","seq")
     lx(paste("Number of segments =", nrow(segments)))
     segments[, len := nchar(seq)]
-    links <- fread(cmd = paste0("grep \"^L\" ", g), header = FALSE)
+    links <- fread(cmd = paste0("grep \"^L\" ", g), header = FALSE, fill = T)
     lstart <-links[,.N,by=V2]
     lend <-links[,.N,by=V4]
     l11 <- merge(lstart[N==1],lend[N==1],by.x="V2",by.y="V4")
