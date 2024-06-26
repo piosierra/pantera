@@ -1,4 +1,4 @@
-![pantera](images/pantera.svg?raw=true "pantera")
+![pantera](images/pantera.png?raw=true "pantera")
 # Identification of transposable element families from pangenome polymorphisms
 
 A pangenome is a collection of genomes or haplotypes that can be aligned and stored as a variation graph in gfa format. 
