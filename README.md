@@ -60,8 +60,8 @@ In the folder `test` there is a gfa example file with the respective outputs tha
 ### Citing **pantera**
 If you use **pantera** in your work, please cite:
 
-
-Sierra, P., and Durbin, R. (2024). Identification of transposable element families from pangenome polymorphisms. 2024.04.05 https://www.biorxiv.org/content/10.1101/2024.04.05.588311v1 (preprint)
+> Sierra, P., Durbin, R. Identification of transposable element families from pangenome polymorphisms.
+> *Mobile DNA* **15**, 13 (2024). [doi.org/10.1186/s13100-024-00323-y][doi]
 
 
 
