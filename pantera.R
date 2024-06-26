@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-version <- "0.2.1"
+version <- "0.2.2"
 
 # Uncomment and change the path to a folder to install needed libraries if you 
 # don't have access to the default one (e.g. in a cluster)
@@ -75,6 +75,7 @@ spec <- matrix(
     "min_edge",           "z", 1, "integer",
     "rep_factor",         "f", 1, "integer",
     "dual",               "d", 0, "logical",
+    "keep_temp",          "t", 0, "loginal",
     "help",               "h", 0, "logical"
   ),
   byrow = TRUE,
@@ -92,6 +93,13 @@ if (is.null(opt$dual)) {
 } else
 { 
   dual <- TRUE
+}
+
+if (is.null(opt$keep_temp)) {
+  keep_temp <- FALSE
+} else
+{ 
+  keep_temp <- TRUE
 }
 
 if (is.null(opt$gfas_list)) {
