@@ -479,7 +479,7 @@ while (TRUE) {
     if (!keep_temp) {
       lx(paste("Cleaning temporal files"))
       unlink(list.files(".","pantera_lib_.*"))
-      unlink(list.dirs(".","loop_", recursive = T))
+      unlink(dir(".","loop_"), recursive = T)
     }
     lx(paste("End of process"))
     setwd("..")
