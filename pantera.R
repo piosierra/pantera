@@ -476,6 +476,11 @@ while (TRUE) {
   segments_unique <- segments_unique[order(-len)]
   if (nrow(segments_unique)/prev > 0.98) { 
     system("mv all_segments.fa pantera_lib.fa")
+    if (!keep_temp) {
+      lx(paste("Cleaning temporal files"))
+      unlink(list.files(".","pantera_lib_.*"))
+      unlink(list.dirs(".","loop_", recursive = T))
+    }
     lx(paste("End of process"))
     setwd("..")
     break 
