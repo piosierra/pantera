@@ -63,7 +63,7 @@ If you use **pantera** in your work, please cite:
 > Sierra, P., Durbin, R. Identification of transposable element families from pangenome polymorphisms.
 > *Mobile DNA* **15**, 13 (2024). [doi.org/10.1186/s13100-024-00323-y][doi]
 
-
+[doi]: https://doi.org/10.1186/s13100-024-00323-y
 
 
 
