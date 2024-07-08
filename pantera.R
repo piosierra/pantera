@@ -216,12 +216,14 @@ get_segments <- function(segments_unique) {
   for (g in g_list) {
     gc()
     lx(paste("Procesing file =", g))
-    segments <- fread(cmd = paste0("grep \"^S\" ", g), header = FALSE, fill = T)
-    segments <- segments[, c(1:3)]
-    colnames(segments) <- c("tag","seg","seq")
+    all_gfa  <- fread(cmd = paste0("echo -e '@@A\tB\tC\tD\tE\tF';cat ",g), header = FALSE, fill = T)
+    # fill should have a number of columns larger than those in the gfa (data.table 1.16) FIXED FOR NOW
+    segments <- all_gfa[V1 == "S", c(2:3)]
+    colnames(segments) <- c("seg", "seq")
     lx(paste("Number of segments =", nrow(segments)))
     segments[, len := nchar(seq)]
-    links <- fread(cmd = paste0("grep \"^L\" ", g), header = FALSE, fill = T)
+    links <- all_gfa[V1 == "L"]
+    rm(all_gfa)
     lstart <-links[,.N,by=V2]
     lend <-links[,.N,by=V4]
     l11 <- merge(lstart[N==1],lend[N==1],by.x="V2",by.y="V4")
@@ -231,6 +233,10 @@ get_segments <- function(segments_unique) {
     segments[, Ns := str_count(segments$seq, "N")]
     segments <- segments[Ns <= (len * opt$Ns)] 
     lx(paste("Number of valid Ns segments =", nrow(segments)))
+    if (nrow(segments)<2) {
+      lx("Insufficient number of polymorphic segments to run pantera.")
+      quit(save = "no")
+    }
     segments[, k5:= 1024-unlist(mclapply(str_split(segments$seq,""), function(x) {apply(kcount(x, residues = "DNA"),1,function(y){sum((y==0))})}))]
     segments[, check:=k5/min(len,1024), by=rownames(segments)]
     segments <- segments[check>(opt$rep_factor /100)]
