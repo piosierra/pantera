@@ -104,11 +104,12 @@ if (is.null(opt$keep_temp)) {
 
 if (is.null(opt$gfas_list)) {
   print("-gfas_list missing")
-  q(status <- 1)
+  q(save = "no")
 }
 
 if (is.null(opt$output_folder)) {
-  opt$output_folder <- "pantera_output"
+  print("-output_folder missing")
+  q(save = "no")
 }
 
 
@@ -414,6 +415,10 @@ cdhit = function(seqs, identity = NULL, kmerSize = NULL, min_length = 200,
 
 ### MAIN
 
+if (dir.exists(opt$output_folder)) {
+  print("Output folder already exists.")
+  quit(save= "no")
+}
 dir.create(opt$output_folder, showWarnings = FALSE)
 sink(paste0(opt$output_folder,"/pantera.log"))
 
@@ -431,7 +436,7 @@ if (length(grep("mafft", mafft_exec)) > 0) {
   lx(paste("mafft exec:", mafft_exec))
 } else {
   lx("mafft not found")
-  stop()
+  quit(save= "no")
 }
 lx(paste("Gfas list:", opt$gfas_list))
 lx(paste("Output:", opt$output_folder))
