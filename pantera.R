@@ -217,7 +217,7 @@ get_segments <- function(segments_unique) {
   for (g in g_list) {
     gc()
     lx(paste("Procesing file =", g))
-    all_gfa  <- fread(cmd = paste0("echo -e '@@A\tB\tC\tD\tE\tF';cat ",g), header = FALSE, fill = T)
+    all_gfa  <- fread(cmd = paste0("echo -e '@@A\tB\tC\tD\tE\tF\tG';cat ",g), header = FALSE, fill = T)
     # fill should have a number of columns larger than those in the gfa (data.table 1.16) FIXED FOR NOW
     segments <- all_gfa[V1 == "S", c(2:3)]
     colnames(segments) <- c("seg", "seq")
