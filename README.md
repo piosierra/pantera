@@ -33,16 +33,24 @@ pggb -i yourspecies.chr1.fa.gz -o output -n 9 -t 16
 pantera -g gfas_list -c 16 -o output_folder
 ```
 
-### 2 a- (Optional) Identify structural features in the sequences
-```
-pantercheck.R pantera_lib.fa
-```
 
 ### 3- Classify the library obtained
 3.1 Use RepeatClassifier, which is part of the [Dfam TE tools](https://github.com/Dfam-consortium/TETools), or your classifier of choice to classify the sequences obtained.
 ```
 RepeatClassifier -consensi pantera_lib.fa
 ```
+
+### 3 a- (Optional) Identify structural features in the sequences
+```
+pantercheck.R pantera_lib.fa.classified
+```
+This will produce a file `pantera_lib.fa.classified.benchmark2` with the following fields:
+Column 1: sequence name
+Column 2: sequence length
+Column 3: LTR length
+Column 4: TIR length
+Column 5: polyA length
+Column 6: Sequence repetitiveness (lower means less repetitive)
 
 ### Data example
 
