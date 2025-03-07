@@ -45,12 +45,12 @@ RepeatClassifier -consensi pantera_lib.fa
 pantercheck.R pantera_lib.fa.classified
 ```
 This will produce a file `pantera_lib.fa.classified.benchmark2` with the following fields:
-Column 1: sequence name
-Column 2: sequence length
-Column 3: LTR length
-Column 4: TIR length
-Column 5: polyA length
-Column 6: Sequence repetitiveness (lower means less repetitive)
+- Column 1: sequence name
+- Column 2: sequence length
+- Column 3: LTR length
+- Column 4: TIR length
+- Column 5: polyA length
+- Column 6: Sequence repetitiveness (lower means less repetitive)
 
 ### Data example
 
