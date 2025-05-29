@@ -195,7 +195,7 @@ reformatDNA <- function(dna) {
 ## Create DNAbin from data.frame
 makeDNAbin <- function(df) {
   y <- t(sapply(strsplit(df$seq,""), tolower))
-  rownames(y)<- df$name
+  names(y)<- df$name
   return(as.DNAbin(y))
 }
 
@@ -217,8 +217,8 @@ get_segments <- function(segments_unique) {
   for (g in g_list) {
     gc()
     lx(paste("Procesing file =", g))
-    all_gfa  <- fread(cmd = paste0("echo -e '@@A\tB\tC\tD\tE\tF\tG';cat ",g), header = FALSE, fill = T)
-    # fill should have a number of columns larger than those in the gfa (data.table 1.16) FIXED FOR NOW
+    # Fix for issue #6. Should work with updated versions of data.table. Thanks to laijirong for the suggestion.
+    all_gfa  <- fread(cmd = paste0("grep -v -e ^P -e ^H ", g), header = FALSE, fill = 6) 
     segments <- all_gfa[V1 == "S", c(2:3)]
     colnames(segments) <- c("seg", "seq")
     lx(paste("Number of segments =", nrow(segments)))
