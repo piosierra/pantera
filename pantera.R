@@ -217,8 +217,8 @@ get_segments <- function(segments_unique) {
   for (g in g_list) {
     gc()
     lx(paste("Procesing file =", g))
-    # Fix for issue #6. Should work with updated versions of data.table. Thanks to laijirong for the suggestion.
-    all_gfa  <- fread(cmd = paste0("grep -v -e ^P -e ^H ", g), header = FALSE, fill = 6) 
+    # Fix for issue #6. Should work with updated versions of data.table. Thanks to laijirong for the suggestion. Back to fill = T for compatibility.
+    all_gfa  <- fread(cmd = paste0("grep -v -e ^P -e ^H ", g), header = FALSE, fill = T) 
     segments <- all_gfa[V1 == "S", c(2:3)]
     colnames(segments) <- c("seg", "seq")
     lx(paste("Number of segments =", nrow(segments)))
