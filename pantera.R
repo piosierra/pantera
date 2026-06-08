@@ -75,7 +75,7 @@ spec <- matrix(
     "min_edge",           "z", 1, "integer",
     "rep_factor",         "f", 1, "integer",
     "dual",               "d", 0, "logical",
-    "keep_temp",          "t", 0, "loginal",
+    "keep_temp",          "t", 0, "logical",
     "help",               "h", 0, "logical"
   ),
   byrow = TRUE,
